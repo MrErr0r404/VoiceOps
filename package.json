@@ -1,0 +1,24 @@
+{
+  "name": "voiceops",
+  "version": "1.0.0",
+  "description": "Voice-native, hands-free AI operations assistant with interruption-safe full-duplex voice interaction",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "build": "npm run build --workspace=client",
+    "seed": "npm run seed --workspace=server",
+    "test": "npm run test --workspace=server",
+    "test:interruption": "npm run test:interruption --workspace=server",
+    "start": "npm run start --workspace=server",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

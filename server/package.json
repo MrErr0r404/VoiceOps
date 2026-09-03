@@ -1,0 +1,27 @@
+{
+  "name": "voiceops-server",
+  "version": "1.0.0",
+  "description": "VoiceOps backend — Express + Socket.IO + MongoDB",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "seed": "node src/seed/seedData.js",
+    "test": "jest --forceExit --detectOpenHandles",
+    "test:interruption": "jest --forceExit --detectOpenHandles --testPathPattern=interruption"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.4.1",
+    "socket.io": "^4.7.5",
+    "uuid": "^10.0.0",
+    "winston": "^3.13.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.3"
+  }
+}
