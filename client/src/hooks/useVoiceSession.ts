@@ -20,57 +20,70 @@ export function useVoiceSession() {
     if (!('speechSynthesis' in window)) return;
     
     try {
+      // Cancel any pending speech first
       window.speechSynthesis.cancel();
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      }
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.15; // Slightly higher pitch for a clear, natural female tone
-      utterance.lang = 'en-US';
-
-      // Pick a female English voice (Zira, Jenny, Samantha, Victoria, or Google US English Female)
-      const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length > 0) {
-        const femaleVoice = voices.find(v => 
-          (v.lang.startsWith('en') || v.lang.includes('US')) && 
-          (v.name.toLowerCase().includes('zira') || 
-           v.name.toLowerCase().includes('jenny') || 
-           v.name.toLowerCase().includes('samantha') || 
-           v.name.toLowerCase().includes('victoria') || 
-           v.name.toLowerCase().includes('female') ||
-           v.name.toLowerCase().includes('aria') ||
-           v.name.toLowerCase().includes('karen'))
-        ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
-        
-        if (femaleVoice) {
-          utterance.voice = femaleVoice;
+      
+      // Small delay after cancel to let Chrome clear its internal queue
+      setTimeout(() => {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
         }
-      }
 
-      utterance.onstart = () => {
-        useSessionStore.getState().setSessionState('SPEAKING');
-        bargeInDetectorRef.current.setAIPlaying(true);
-      };
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.15;
+        utterance.lang = 'en-US';
 
-      utterance.onend = () => {
-        bargeInDetectorRef.current.setAIPlaying(false);
-        if (useSessionStore.getState().sessionState === 'SPEAKING') {
-          useSessionStore.getState().setSessionState('IDLE');
+        // Pick a female English voice
+        const voices = window.speechSynthesis.getVoices();
+        if (voices && voices.length > 0) {
+          const femaleVoice = voices.find(v => 
+            (v.lang.startsWith('en') || v.lang.includes('US')) && 
+            (v.name.toLowerCase().includes('zira') || 
+             v.name.toLowerCase().includes('jenny') || 
+             v.name.toLowerCase().includes('samantha') || 
+             v.name.toLowerCase().includes('victoria') || 
+             v.name.toLowerCase().includes('female') ||
+             v.name.toLowerCase().includes('aria') ||
+             v.name.toLowerCase().includes('karen'))
+          ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+          
+          if (femaleVoice) {
+            utterance.voice = femaleVoice;
+          }
         }
-      };
 
-      utterance.onerror = (e) => {
-        console.warn('Speech synthesis warning:', e);
-        bargeInDetectorRef.current.setAIPlaying(false);
-        if (useSessionStore.getState().sessionState === 'SPEAKING') {
-          useSessionStore.getState().setSessionState('IDLE');
-        }
-      };
+        // Keep reference to prevent garbage collection (Chrome bug)
+        (window as any).__voiceOpsUtterance = utterance;
 
-      window.speechSynthesis.speak(utterance);
-      audioQueueRef.current.playNotificationBeep(600, 0.08);
+        utterance.onstart = () => {
+          useSessionStore.getState().setSessionState('SPEAKING');
+          bargeInDetectorRef.current.setAIPlaying(true);
+        };
+
+        utterance.onend = () => {
+          bargeInDetectorRef.current.setAIPlaying(false);
+          const state = useSessionStore.getState().sessionState;
+          if (state === 'SPEAKING') {
+            useSessionStore.getState().setSessionState('IDLE');
+          }
+        };
+
+        utterance.onerror = (e) => {
+          // 'interrupted' is expected when we call cancel()
+          if (e.error !== 'interrupted') {
+            console.warn('Speech synthesis warning:', e.error);
+          }
+          bargeInDetectorRef.current.setAIPlaying(false);
+          const state = useSessionStore.getState().sessionState;
+          if (state === 'SPEAKING') {
+            useSessionStore.getState().setSessionState('IDLE');
+          }
+        };
+
+        window.speechSynthesis.speak(utterance);
+        audioQueueRef.current.playNotificationBeep(600, 0.08);
+      }, 50);
     } catch (e) {
       console.error('Speech synthesis error:', e);
     }
@@ -79,7 +92,7 @@ export function useVoiceSession() {
   const interrupt = useCallback(() => {
     const interruptTimestamp = Date.now();
     
-    // Stop local audio playback immediately
+    // 1. Stop ALL local audio immediately
     audioQueueRef.current.stop();
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -90,6 +103,8 @@ export function useVoiceSession() {
     audioQueueRef.current.playNotificationBeep(220, 0.05);
 
     const curGen = useSessionStore.getState().currentGenerationId;
+    
+    // 2. Log the barge-in event
     useSessionStore.getState().addEvent({ 
       id: Math.random().toString(), 
       timestamp: interruptTimestamp, 
@@ -98,22 +113,32 @@ export function useVoiceSession() {
       generationId: curGen
     });
     
-    // Visually mark active turns as INTERRUPTED
+    // 3. Mark active assistant turns as INTERRUPTED
     const turns = useSessionStore.getState().conversationTurns;
     if (turns.length > 0) {
       const lastTurn = turns[turns.length - 1];
-      if (lastTurn.role === 'VOICEOPS') {
+      if (lastTurn.role === 'VOICEOPS' && lastTurn.status !== 'INTERRUPTED') {
         useSessionStore.getState().updateTurn(lastTurn.id, { status: 'INTERRUPTED' });
       }
     }
 
-    useSessionStore.getState().setSessionState('INTERRUPTED');
-    useSessionStore.getState().incrementGeneration();
-    
+    // 4. Tell the server to interrupt (server will increment its own generation)
     socketService.emit('assistant:interrupt', { 
       generationId: curGen,
       timestamp: interruptTimestamp 
     });
+
+    // 5. Set state to INTERRUPTED briefly, then auto-recover to IDLE
+    useSessionStore.getState().setSessionState('INTERRUPTED');
+    useSessionStore.getState().incrementGeneration();
+    
+    // Auto-recover from INTERRUPTED to IDLE after 1.5s
+    setTimeout(() => {
+      const state = useSessionStore.getState().sessionState;
+      if (state === 'INTERRUPTED') {
+        useSessionStore.getState().setSessionState('IDLE');
+      }
+    }, 1500);
   }, []);
 
   useEffect(() => {
@@ -149,7 +174,16 @@ export function useVoiceSession() {
     // Handle server state changes
     socketService.on('session:state', (data: { state: any, generationId?: number }) => {
       if (data.state) {
+        // Don't let server push us back to SPEAKING if we just interrupted
+        const curState = useSessionStore.getState().sessionState;
+        if (curState === 'INTERRUPTED' && data.state === 'SPEAKING') {
+          return; // Ignore stale server state
+        }
         useSessionStore.getState().setSessionState(data.state);
+      }
+      // Sync generation from server if provided
+      if (data.generationId && data.generationId > useSessionStore.getState().currentGenerationId) {
+        useSessionStore.setState({ currentGenerationId: data.generationId });
       }
     });
 
@@ -158,8 +192,10 @@ export function useVoiceSession() {
       const genId = data.generationId;
       const rawAudio = data.audioData || data.audio;
       const curGen = useSessionStore.getState().currentGenerationId;
+      const curState = useSessionStore.getState().sessionState;
       
-      if (rawAudio && genId === curGen) {
+      // Reject audio if generation is stale or we're in interrupted state
+      if (rawAudio && genId === curGen && curState !== 'INTERRUPTED') {
         audioQueueRef.current.enqueue({
           generationId: genId,
           sequenceNumber: data.sequenceNumber || 0,
@@ -237,6 +273,14 @@ export function useVoiceSession() {
 
     // Assistant response completion
     socketService.on('assistant:response-complete', (data: { turnId: string, text: string, spokenText?: string, generationId: number, equipment?: any, task?: string }) => {
+      const curGen = useSessionStore.getState().currentGenerationId;
+      const curState = useSessionStore.getState().sessionState;
+      
+      // Reject stale responses
+      if (data.generationId < curGen || curState === 'INTERRUPTED') {
+        return;
+      }
+
       useSessionStore.getState().addTurn({
         id: data.turnId || Math.random().toString(),
         role: 'VOICEOPS',
@@ -302,7 +346,7 @@ export function useVoiceSession() {
       socketService.emit('voice:speech-end');
     };
 
-    // Real barge-in detected
+    // Real barge-in detected from voice
     bargeInDetectorRef.current.onBargeIn((ts) => {
       interrupt();
       const latency = Date.now() - ts;
@@ -313,8 +357,10 @@ export function useVoiceSession() {
       useSessionStore.getState().setPartialTranscript('');
       if (!text || text.trim().length === 0) return;
 
+      // If AI is speaking and user speaks, trigger barge-in first
       if (bargeInDetectorRef.current.isAIPlaying()) {
         bargeInDetectorRef.current.triggerBargeInIfPlaying(text);
+        return; // The barge-in handler will fire interrupt, don't also send transcript
       }
       
       const newGenId = useSessionStore.getState().currentGenerationId + 1;
@@ -391,6 +437,21 @@ export function useVoiceSession() {
   // Send textual instruction directly (for demo / testing without mic)
   const sendInstruction = (text: string) => {
     audioQueueRef.current.initContext();
+    
+    // If currently speaking, interrupt first
+    const curState = useSessionStore.getState().sessionState;
+    if (curState === 'SPEAKING' || curState === 'TOOL_RUNNING' || curState === 'PROCESSING') {
+      interrupt();
+      // Small delay to let interruption propagate before sending new instruction
+      setTimeout(() => {
+        _sendInstructionInternal(text);
+      }, 200);
+    } else {
+      _sendInstructionInternal(text);
+    }
+  };
+
+  const _sendInstructionInternal = (text: string) => {
     const newGenId = useSessionStore.getState().currentGenerationId + 1;
     useSessionStore.getState().incrementGeneration();
     

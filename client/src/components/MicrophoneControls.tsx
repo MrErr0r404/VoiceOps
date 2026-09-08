@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Headphones, VolumeX, Square, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, Headphones, Square, PhoneOff } from 'lucide-react';
 
 interface Props {
   isListening: boolean;
@@ -11,11 +11,11 @@ interface Props {
 
 export function MicrophoneControls({ isListening, isSpeaking, onToggleMic, onInterrupt, onEndSession }: Props) {
   return (
-    <div className="flex items-center justify-center gap-3 p-4 glass-card mt-4">
+    <div className="flex items-center justify-center gap-3 flex-wrap">
       {/* Mic toggle */}
       <button 
         onClick={onToggleMic}
-        className={`p-4 rounded-full transition-all flex items-center justify-center ${
+        className={`p-4 md:p-4 rounded-full transition-all flex items-center justify-center active:scale-95 touch-manipulation ${
           isListening 
             ? 'bg-voiceops-emerald text-black shadow-lg shadow-voiceops-emerald/50 scale-105 ring-2 ring-voiceops-emerald/80' 
             : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
@@ -26,10 +26,10 @@ export function MicrophoneControls({ isListening, isSpeaking, onToggleMic, onInt
         {isListening ? <Mic size={24} className="animate-pulse" /> : <MicOff size={24} />}
       </button>
 
-      {/* Immediate Hardware Interruption Button - Always accessible, prominent during speech */}
+      {/* Immediate Hardware Interruption Button */}
       <button 
         onClick={onInterrupt}
-        className={`px-4 py-3 rounded-full font-bold flex items-center gap-2 transition-all shadow-lg ${
+        className={`px-5 py-3.5 rounded-full font-bold flex items-center gap-2 transition-all shadow-lg active:scale-95 touch-manipulation ${
           isSpeaking 
             ? 'bg-voiceops-red text-white hover:bg-red-600 animate-pulse ring-2 ring-voiceops-red shadow-voiceops-red/50 scale-105' 
             : 'bg-red-950/40 text-red-400/60 hover:bg-voiceops-red hover:text-white border border-red-900/50'
@@ -43,13 +43,16 @@ export function MicrophoneControls({ isListening, isSpeaking, onToggleMic, onInt
         </span>
       </button>
 
-      <button className="p-3 rounded-full bg-gray-800 text-gray-300 hover:bg-gray-700" title="Hands-free Mode Active">
+      <button 
+        className="p-3 rounded-full bg-gray-800 text-gray-300 hover:bg-gray-700 touch-manipulation" 
+        title="Hands-free Mode Active"
+      >
         <Headphones size={20} className={isListening ? 'text-voiceops-emerald' : ''} />
       </button>
 
       <button 
         onClick={onEndSession}
-        className="p-3 rounded-full bg-gray-800 text-gray-400 hover:bg-voiceops-red hover:text-white transition-colors border border-white/5"
+        className="p-3 rounded-full bg-gray-800 text-gray-400 hover:bg-voiceops-red hover:text-white transition-colors border border-white/5 touch-manipulation"
         title="End Session"
       >
         <PhoneOff size={20} />

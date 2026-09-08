@@ -43,9 +43,21 @@ module.exports = (io) => {
       }
     });
 
-    socket.on(EVENTS.CLIENT.INTERRUPT, () => {
+    socket.on(EVENTS.CLIENT.INTERRUPT, ({ generationId, timestamp } = {}) => {
       if (socket.sessionId) {
         VoiceSessionManager.handleInterruption(socket.sessionId, socket, io);
+        
+        // Auto-recover session state to IDLE after interruption
+        setTimeout(() => {
+          const session = VoiceSessionManager.getSession(socket.sessionId);
+          if (session && session.state === 'INTERRUPTED') {
+            session.state = 'IDLE';
+            socket.emit(EVENTS.SERVER.SESSION_STATE, { 
+              state: 'IDLE', 
+              generationId: session.currentGenerationId 
+            });
+          }
+        }, 1000);
       }
     });
 
