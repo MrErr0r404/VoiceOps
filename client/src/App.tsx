@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { LiveAssistant } from './pages/LiveAssistant';
@@ -15,10 +15,11 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="flex h-screen bg-voiceops-dark text-gray-100 overflow-hidden font-sans">
+      {/* On mobile, use min-h-screen with full vertical scrolling; on desktop (md:) use fixed viewport */}
+      <div className="flex flex-col md:flex-row min-h-screen md:h-screen bg-voiceops-dark text-gray-100 font-sans md:overflow-hidden">
         <Sidebar />
         
-        <main className="flex-1 flex flex-col relative h-full">
+        <main className="flex-1 flex flex-col relative min-h-screen md:h-full">
           {error && (
             <ErrorBanner 
               message={error} 
@@ -27,11 +28,11 @@ function App() {
             />
           )}
 
-          <div className="absolute top-4 right-4 z-10">
+          <div className="absolute top-3 right-3 md:top-4 md:right-4 z-10">
             <ConnectionIndicator />
           </div>
 
-          <div className="flex-1 h-full overflow-hidden">
+          <div className="flex-1 w-full overflow-y-auto md:overflow-hidden">
             <Routes>
               <Route path="/" element={<LiveAssistant />} />
               <Route path="/operations" element={<Operations />} />

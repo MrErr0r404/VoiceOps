@@ -13,14 +13,14 @@ export function VoiceOrb({ state }: Props) {
     TOOL_RUNNING: 'bg-voiceops-amber shadow-[0_0_30px_rgba(245,158,11,0.5)] animate-bounce',
     SPEAKING: 'bg-voiceops-emerald shadow-[0_0_50px_rgba(16,185,129,0.8)] scale-110 transition-transform duration-200',
     INTERRUPTED: 'bg-voiceops-red shadow-[0_0_30px_rgba(239,68,68,0.5)]',
-    ERROR: 'bg-voiceops-red shadow-[0_0_30px_rgba(239,68,68,0.8)]'
+    ERROR: 'bg-gray-600 shadow-none'
   };
 
   return (
-    <div className="flex justify-center items-center h-48 w-48 mx-auto my-8">
+    <div className="flex justify-center items-center h-36 w-36 md:h-44 md:w-44 mx-auto my-2 md:my-4">
       <div
         aria-label={`Voice status: ${state}`}
-        className={`w-32 h-32 rounded-full transition-all duration-500 ease-in-out ${stateStyles[state]}`}
+        className={`w-28 h-28 md:w-32 md:h-32 rounded-full transition-all duration-500 ease-in-out ${stateStyles[state]}`}
       ></div>
     </div>
   );
