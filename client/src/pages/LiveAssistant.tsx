@@ -48,22 +48,22 @@ export function LiveAssistant() {
         </button>
       </div>
 
-      {/* Main Container - allows natural scrolling on phone, flex on desktop */}
-      <div className="flex flex-col lg:flex-row flex-1 gap-4 p-3 md:p-4 overflow-y-auto md:overflow-hidden pb-24 md:pb-4">
+      {/* Main Container */}
+      <div className="flex flex-col lg:flex-row flex-1 gap-4 p-3 md:p-4 overflow-y-auto md:overflow-hidden pb-32 md:pb-4">
         
         {/* LEFT: Conversation (Chat tab on mobile) */}
-        <div className={`w-full lg:w-1/3 flex flex-col glass-card ${activeTab === 'chat' ? 'flex' : 'hidden'} md:flex lg:h-full min-h-[500px]`}>
-          <div className="flex-1 overflow-y-auto max-h-[60vh] md:max-h-none">
+        <div className={`w-full lg:w-1/3 flex flex-col glass-card ${activeTab === 'chat' ? 'flex' : 'hidden'} md:flex lg:h-full min-h-[450px]`}>
+          <div className="flex-1 overflow-y-auto max-h-[55vh] md:max-h-none">
             <ConversationTimeline />
           </div>
           
           {/* Quick Text Input */}
-          <form onSubmit={handleSendText} className="p-2 px-3 md:px-4 border-t border-white/5 flex gap-2 shrink-0">
+          <form onSubmit={handleSendText} className="p-2 px-3 md:px-4 border-t border-white/5 flex gap-2 shrink-0 bg-voiceops-card">
             <input 
               type="text" 
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Speak or type command (e.g. Check Belt 4)..."
+              placeholder="Type command (e.g. Check Belt 4)..."
               className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-voiceops-blue"
             />
             <button 
@@ -74,7 +74,7 @@ export function LiveAssistant() {
             </button>
           </form>
 
-          <div className="p-3 md:p-4 border-t border-white/5 shrink-0 bg-voiceops-card">
+          <div className="p-3 md:p-4 border-t border-white/5 shrink-0 bg-voiceops-card hidden md:block">
             <MicrophoneControls 
               isListening={isListening} 
               isSpeaking={sessionState === 'SPEAKING'}
@@ -86,27 +86,27 @@ export function LiveAssistant() {
         </div>
 
         {/* CENTER: Voice UI (Voice tab on mobile) */}
-        <div className={`w-full lg:w-1/3 flex flex-col items-center justify-start md:justify-center p-4 md:p-8 relative ${activeTab === 'voice' ? 'flex' : 'hidden'} md:flex space-y-4`}>
+        <div className={`w-full lg:w-1/3 flex flex-col items-center justify-start md:justify-center p-4 md:p-8 relative ${activeTab === 'voice' ? 'flex' : 'hidden'} md:flex space-y-3`}>
           
           {/* Status Badge */}
-          <div className="w-full flex justify-center pt-2">
+          <div className="w-full flex justify-center pt-1">
             <SessionStatus state={sessionState} />
           </div>
           
-          {/* Scaled Voice Orb for mobile */}
-          <div className="py-2">
+          {/* Scaled Voice Orb */}
+          <div className="py-1">
             <VoiceOrb state={sessionState} />
           </div>
           
           {/* Status text */}
-          <div className="text-center text-gray-400 text-sm h-10 flex flex-col items-center justify-center px-2">
+          <div className="text-center text-gray-400 text-sm h-8 flex flex-col items-center justify-center px-2">
             {sessionState === 'LISTENING' && <span className="text-voiceops-emerald font-semibold animate-pulse">Listening for voice...</span>}
             {sessionState === 'PROCESSING' && <span className="text-voiceops-blue font-semibold">Reasoning operations...</span>}
-            {sessionState === 'SPEAKING' && <span className="text-purple-400 font-semibold">Rime speaking output...</span>}
+            {sessionState === 'SPEAKING' && <span className="text-purple-400 font-semibold">Speaking output...</span>}
             {sessionState === 'TOOL_RUNNING' && <span className="text-voiceops-amber font-semibold animate-pulse">Running equipment tool (delayed)...</span>}
-            {sessionState === 'INTERRUPTED' && <span className="text-voiceops-red font-bold animate-bounce">INTERRUPTED! Halting stale audio & tools</span>}
-            {sessionState === 'IDLE' && <span className="text-gray-400">Ready. Tap microphone or use queries below.</span>}
-            {sessionState === 'ERROR' && <span className="text-voiceops-red font-semibold">Ready. Tap microphone to start.</span>}
+            {sessionState === 'INTERRUPTED' && <span className="text-voiceops-red font-bold animate-bounce">INTERRUPTED! Audio halted.</span>}
+            {sessionState === 'IDLE' && <span className="text-gray-400">Ready. Tap mic or queries below.</span>}
+            {sessionState === 'ERROR' && <span className="text-gray-400">Ready. Tap mic or queries below.</span>}
           </div>
 
           {/* Audio Waveform */}
@@ -115,38 +115,25 @@ export function LiveAssistant() {
           </div>
 
           {/* Quick preset scenario buttons */}
-          <div className="flex flex-col gap-2 w-full max-w-xs items-center pt-2">
+          <div className="flex flex-col gap-2 w-full max-w-xs items-center pt-1">
             <button 
               onClick={() => sendInstruction("Find the maintenance procedure for Conveyor Belt 4 and guide me through the inspection.")}
-              className="w-full py-2.5 px-4 bg-white/5 active:bg-white/20 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-gray-200 transition-colors font-medium shadow-sm"
+              className="w-full py-2 px-3 bg-white/5 active:bg-white/20 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-gray-200 transition-colors font-medium shadow-sm"
             >
               "Guide inspection for Belt 4"
             </button>
             <button 
               onClick={() => sendInstruction("Stop. Actually check Conveyor Belt 7 instead and only give me the safety inspection.")}
-              className="w-full py-2.5 px-4 bg-voiceops-red/10 active:bg-voiceops-red/30 hover:bg-voiceops-red/20 border border-voiceops-red/30 rounded-xl text-xs text-voiceops-red transition-colors font-medium shadow-sm"
+              className="w-full py-2 px-3 bg-voiceops-red/10 active:bg-voiceops-red/30 hover:bg-voiceops-red/20 border border-voiceops-red/30 rounded-xl text-xs text-voiceops-red transition-colors font-medium shadow-sm"
             >
               "Stop, switch to Belt 7 safety"
             </button>
             <button 
               onClick={() => sendInstruction("Give me the inspection procedure for Cooling Pump 3.")}
-              className="w-full py-2.5 px-4 bg-white/5 active:bg-white/20 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-gray-200 transition-colors font-medium shadow-sm"
+              className="w-full py-2 px-3 bg-white/5 active:bg-white/20 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-gray-200 transition-colors font-medium shadow-sm"
             >
               "Cooling Pump 3 checklist"
             </button>
-          </div>
-
-          {/* Prominent Floating Controls Bar on mobile - always visible at screen bottom */}
-          <div className="w-full max-w-sm pt-4 md:hidden sticky bottom-4 z-20">
-            <div className="bg-voiceops-card/95 border border-white/10 backdrop-blur-xl rounded-2xl p-2 shadow-2xl">
-              <MicrophoneControls 
-                isListening={isListening} 
-                isSpeaking={sessionState === 'SPEAKING'}
-                onToggleMic={isListening ? stopListening : startListening}
-                onInterrupt={interrupt}
-                onEndSession={endSession}
-              />
-            </div>
           </div>
         </div>
 
@@ -162,6 +149,17 @@ export function LiveAssistant() {
           )}
         </div>
 
+      </div>
+
+      {/* FIXED BOTTOM FLOATING CONTROLS DOCK FOR MOBILE - ALWAYS VISIBLE OVER SCREEN */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-voiceops-card/95 border-t border-white/10 backdrop-blur-xl p-2 px-4 shadow-2xl flex justify-center">
+        <MicrophoneControls 
+          isListening={isListening} 
+          isSpeaking={sessionState === 'SPEAKING'}
+          onToggleMic={isListening ? stopListening : startListening}
+          onInterrupt={interrupt}
+          onEndSession={endSession}
+        />
       </div>
     </div>
   );

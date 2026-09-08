@@ -1,11 +1,13 @@
 export class BargeInDetector {
   private aiPlaying: boolean = false;
   private lastBargeInTime: number = 0;
-  private debounceMs: number = 200;
+  private debounceMs: number = 500;
   private bargeInCallback?: (timestamp: number) => void;
+  private currentSpokenText: string = '';
 
-  setAIPlaying(playing: boolean) {
+  setAIPlaying(playing: boolean, spokenText: string = '') {
     this.aiPlaying = playing;
+    this.currentSpokenText = spokenText.toLowerCase();
   }
 
   isAIPlaying(): boolean {
@@ -22,12 +24,25 @@ export class BargeInDetector {
     const clean = (detectedText || '').trim().toLowerCase();
     if (clean.length === 0) return;
 
-    // Fast-path keywords: instant trigger if user says "stop", "wait", "hold", "cancel", "no"
-    const fastInterruptWords = ['stop', 'wait', 'hold', 'cancel', 'no', 'halt', 'check', 'actually'];
-    const hasInterruptKeyword = fastInterruptWords.some(w => clean.includes(w));
+    // Strict intentional interrupt keywords to prevent acoustic echo from phone speaker
+    const fastInterruptWords = [
+      'stop', 'wait', 'hold', 'cancel', 'no', 'halt', 
+      'pause', 'actually', 'shut up', 'quiet'
+    ];
+    
+    // Check if user explicitly spoke an interrupt keyword
+    const words = clean.split(/\s+/);
+    const hasInterruptKeyword = words.some(w => fastInterruptWords.includes(w)) ||
+      fastInterruptWords.some(w => clean === w || clean.startsWith(w + ' ') || clean.endsWith(' ' + w));
 
-    // Either a direct command keyword or any distinct user speech (>= 2 chars)
-    if (hasInterruptKeyword || clean.length >= 2) {
+    // CRITICAL: Prevent self-interruption from phone speaker audio feedback.
+    // If the microphone transcript is just echoing the AI's own speech, DO NOT interrupt!
+    if (this.currentSpokenText && this.currentSpokenText.includes(clean)) {
+      return;
+    }
+
+    // Only interrupt on explicit user keywords when audio is actively playing
+    if (hasInterruptKeyword) {
       const now = Date.now();
       if (now - this.lastBargeInTime > this.debounceMs) {
         this.lastBargeInTime = now;

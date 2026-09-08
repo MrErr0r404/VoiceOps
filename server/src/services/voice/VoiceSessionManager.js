@@ -237,6 +237,13 @@ class VoiceSessionManager {
         EventLogger.logError(sessionId, err, { genId, turnId });
         session.state = 'ERROR';
         socket.emit(EVENTS.SERVER.SESSION_STATE, { state: 'ERROR', generationId: genId, error: err.message });
+        
+        setTimeout(() => {
+          if (session.state === 'ERROR') {
+            session.state = 'IDLE';
+            socket.emit(EVENTS.SERVER.SESSION_STATE, { state: 'IDLE', generationId: session.currentGenerationId });
+          }
+        }, 2000);
       }
     }
   }
